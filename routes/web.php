@@ -951,6 +951,20 @@ Route::middleware('auth')->group(function () {
         }
     );
 
+    // Activity Point API Routes - untuk KPI Activity Point Management
+    // Routes ini di-register di web.php (bukan api.php) agar dapat session middleware
+    // Sehingga AJAX calls dari browser bisa terauthentikasi dengan session
+    Route::middleware('auth')->prefix('api/activity-point')->group(function () {
+        // Update individual activity point
+        Route::put('/{activityId}', [App\Http\Controllers\Api\ActivityPointController::class, 'updateActivityPoint']);
+        
+        // Bulk update dan recalculate KPI
+        Route::post('/bulk-update', [App\Http\Controllers\Api\ActivityPointController::class, 'bulkUpdateAndRecalculate']);
+        
+        // Revert activity point ke nilai original
+        Route::post('/{activityId}/revert', [App\Http\Controllers\Api\ActivityPointController::class, 'revertActivityPoint']);
+    });
+
     // Pengumuman Routes
     Route::controller(App\Http\Controllers\PengumumanController::class)->group(
         function () {

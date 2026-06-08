@@ -183,6 +183,7 @@
                                      <option value="attendance_cuti">Total Cuti (Hari)</option>
                                      <option value="attendance_terlambat">Total Keterlambatan (Hari/Kali)</option>
                                      <option value="attendance_hadir">Total Kehadiran (Hari)</option>
+                                     <option value="activity_count">Total Aktivitas (Kali)</option>
                                  </select>
                                  <label for="metric_source">Sumber Data Otomatis</label>
                              </div>

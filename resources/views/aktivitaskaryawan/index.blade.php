@@ -127,6 +127,21 @@
                                                         <span class="text-muted" style="font-size: 10px;">-</span>
                                                     @endif
                                                 </div>
+                                                <!-- Point Aktivitas -->
+                                                <div class="col-md-1 text-center" style="display: none;">
+                                                    <div class="d-flex flex-column align-items-center gap-1">
+                                                        <div class="badge bg-success" style="font-size: 13px; padding: 6px 8px; cursor: pointer;" 
+                                                             title="Klik untuk edit poin" 
+                                                             onclick="openEditPoinModal({{ $item->id }}, {{ $item->poin }}, '{{ $item->nik }}', '{{ $item->karyawan->nama_karyawan ?? 'N/A' }}')">
+                                                            <span class="activity-poin-display-{{ $item->id }}">{{ number_format($item->poin, 0) }}</span> Poin
+                                                        </div>
+                                                        @if ($item->poin_adjusted_by)
+                                                            <small class="text-muted" style="font-size: 10px;">Disesuaikan</small>
+                                                        @else
+                                                            <small class="text-muted" style="font-size: 10px;">Otomatis</small>
+                                                        @endif
+                                                    </div>
+                                                </div>
                                                 <!-- Info -->
                                                 <div class="col-md-2 text-center">
                                                     <div class="text-muted" style="font-size: 11px;">
@@ -218,6 +233,64 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Point Modal -->
+<div class="modal fade" id="editPoinModal" tabindex="-1" aria-labelledby="editPoinModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editPoinModalLabel">
+                    <i class="ti ti-star me-2"></i>Sesuaikan Point Aktivitas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Karyawan</label>
+                    <div class="fw-bold" id="editPoinKaryawan"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nilai Point Aktivitas</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-outline-danger btn-lg" id="btnMinusPoin" style="width: 50px; height: 50px; padding: 0; border-radius: 8px;">
+                            <i class="ti ti-minus" style="font-size: 20px;"></i>
+                        </button>
+                        <div style="flex: 1; text-align: center;">
+                            <input type="number" id="editPoinValue" class="form-control form-control-lg" 
+                                   style="font-size: 24px; text-align: center; font-weight: bold;" 
+                                   min="0" max="100" step="1">
+                            <small class="text-muted d-block mt-2">Min: 0 | Max: 100</small>
+                        </div>
+                        <button type="button" class="btn btn-outline-success btn-lg" id="btnPlusPoin" style="width: 50px; height: 50px; padding: 0; border-radius: 8px;">
+                            <i class="ti ti-plus" style="font-size: 20px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Point Awal (Otomatis)</label>
+                    <div class="badge bg-info" style="padding: 8px 12px; font-size: 14px;">
+                        <span id="editPoinOriginal">0</span> Poin
+                    </div>
+                </div>
+
+                <div class="alert alert-info d-flex gap-2">
+                    <i class="ti ti-info-circle" style="margin-top: 3px;"></i>
+                    <div>
+                        <small>Perubahan point akan otomatis mempengaruhi nilai dan grade KPI karyawan.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="btnSavePoin">
+                    <i class="ti ti-device-floppy me-2"></i>Simpan Point
+                </button>
             </div>
         </div>
     </div>
@@ -342,5 +415,146 @@
 
     // Update export button when NIK selection changes
     document.getElementById('nik').addEventListener('change', updateExportButton);
+
+    // Edit Point Modal Functions
+    let currentActivityId = null;
+    let currentActivityNik = null;
+
+    function openEditPoinModal(activityId, poin, nik, namaKaryawan) {
+        currentActivityId = activityId;
+        currentActivityNik = nik;
+
+        document.getElementById('editPoinValue').value = Math.round(poin);
+        document.getElementById('editPoinOriginal').textContent = Math.round(poin);
+        document.getElementById('editPoinKaryawan').textContent = namaKaryawan + ' (' + nik + ')';
+
+        const modal = new bootstrap.Modal(document.getElementById('editPoinModal'));
+        modal.show();
+    }
+    window.openEditPoinModal = openEditPoinModal;
+
+    // Plus button untuk increment poin
+    document.getElementById('btnPlusPoin').addEventListener('click', function() {
+        const input = document.getElementById('editPoinValue');
+        let value = parseInt(input.value) || 0;
+        if (value < 100) {
+            input.value = value + 1;
+        }
+    });
+
+    // Minus button untuk decrement poin
+    document.getElementById('btnMinusPoin').addEventListener('click', function() {
+        const input = document.getElementById('editPoinValue');
+        let value = parseInt(input.value) || 0;
+        if (value > 0) {
+            input.value = value - 1;
+        }
+    });
+
+    // Save button untuk simpan poin
+    document.getElementById('btnSavePoin').addEventListener('click', function() {
+        const btn = this;
+        const newPoin = parseFloat(document.getElementById('editPoinValue').value) || 0;
+
+        // Validasi range
+        if (newPoin < 0 || newPoin > 100) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Point harus antara 0 - 100',
+                icon: 'error'
+            });
+            return;
+        }
+
+        // Disable button dan tampilkan loading
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ti ti-loader spinner"></i> Menyimpan...';
+
+        // Get CSRF token
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        
+        // AJAX call untuk update poin
+        $.ajax({
+            url: '/api/activity-point/' + currentActivityId,
+            method: 'PUT',
+            headers: {
+                'X-CSRF-TOKEN': token || '',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            xhrFields: {
+                withCredentials: true  // Include cookies untuk session auth
+            },
+            crossDomain: true,
+            data: JSON.stringify({
+                poin: newPoin
+            }),
+            success: function(response) {
+                if (response.success) {
+                    // Update display
+                    document.querySelector('.activity-poin-display-' + currentActivityId).textContent = Math.round(newPoin);
+
+                    // Show success message
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        text: 'Point aktivitas berhasil diperbarui. KPI karyawan akan segera dihitung ulang.',
+                        icon: 'success',
+                        timer: 2000
+                    });
+
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('editPoinModal')).hide();
+
+                    // Reload halaman setelah 2 detik untuk refresh tampilan KPI
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: response.message || 'Gagal menyimpan point',
+                        icon: 'error'
+                    });
+                }
+            },
+            error: function(xhr) {
+                let errorMsg = 'Gagal menyimpan point aktivitas';
+                
+                if (xhr.status === 401) {
+                    errorMsg = 'Anda tidak memiliki akses. Silakan login kembali.';
+                } else if (xhr.status === 403) {
+                    errorMsg = 'Anda tidak memiliki izin untuk mengubah point aktivitas.';
+                } else if (xhr.responseJSON?.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+
+                Swal.fire({
+                    title: 'Error',
+                    text: errorMsg,
+                    icon: 'error'
+                });
+                console.error('Error:', xhr);
+            },
+            complete: function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ti ti-device-floppy me-2"></i>Simpan Point';
+            }
+        });
+    });
+
+    // Add CSS for spinner animation
+    const style = document.createElement('style');
+    style.textContent = `
+        .spinner {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
 </script>
 @endpush

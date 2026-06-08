@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AktivitasKaryawan;
 use App\Models\Departemen;
 use App\Models\Jabatan;
 use App\Models\Karyawan;
@@ -13,6 +14,7 @@ use App\Models\KpiJabatanIndicator;
 use App\Models\KpiPeriod;
 use App\Models\Presensi;
 use App\Models\Userkaryawan;
+use App\Services\KpiActivityPointsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
@@ -394,6 +396,16 @@ class KpiEmployeeController extends Controller
                     }
                 }
                 return $total_late_days;
+            case 'activity_poin':
+                // Calculate total points from activities
+                $service = new KpiActivityPointsService();
+                return $service->calculateActivityPoints($nik, $start, $end);
+            case 'activity_count':
+                // Count number of activities with points
+                return AktivitasKaryawan::where('nik', $nik)
+                    ->whereBetween('created_at', [$start, $end])
+                    ->where('poin', '>', 0)
+                    ->count();
             default:
                 return 0;
         }

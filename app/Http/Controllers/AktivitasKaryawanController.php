@@ -214,7 +214,10 @@ class AktivitasKaryawanController extends Controller
             $data['foto'] = $fotoName;
         }
 
-        AktivitasKaryawan::create($data);
+        // Auto-calculate poin berdasarkan sistem
+        $aktivitas = new AktivitasKaryawan($data);
+        $aktivitas->calculateAutomaticPoin();
+        $aktivitas->save();
 
         return redirect()->route('aktivitaskaryawan.index')
             ->with('success', 'Aktivitas karyawan berhasil ditambahkan.');
@@ -390,7 +393,13 @@ class AktivitasKaryawanController extends Controller
             $data['foto'] = $fotoName;
         }
 
-        $aktivitaskaryawan->update($data);
+        // Update data
+        $aktivitaskaryawan->fill($data);
+        
+        // Re-calculate poin otomatis berdasarkan aktivitas terbaru
+        $aktivitaskaryawan->calculateAutomaticPoin();
+        
+        $aktivitaskaryawan->save();
 
         return redirect()->route('aktivitaskaryawan.index')
             ->with('success', 'Aktivitas karyawan berhasil diperbarui.');

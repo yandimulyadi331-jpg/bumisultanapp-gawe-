@@ -438,7 +438,7 @@
                 @endphp
                 <div class="fade-up item press mb-0"
                     style="animation-delay: {{ $index * 0.04 }}s;"
-                    onclick="showDetailModal({{ $item->id }}, '{{ addslashes($item->aktivitas) }}', '{{ $item->created_at->format('d M Y') }}', '{{ $item->created_at->format('H:i') }}', '{{ $item->lokasi }}', '{{ $item->foto }}')">
+                    onclick="showDetailModal({{ $item->id }}, '{{ addslashes($item->aktivitas) }}', '{{ $item->created_at->format('d M Y') }}', '{{ $item->created_at->format('H:i') }}', '{{ $item->lokasi }}', '{{ $item->foto }}', {{ $item->poin ?? 0 }})">>
                     <div class="detail">
                         {{-- Date Badge Sync --}}
                         <div class="date-badge-modern">
@@ -457,17 +457,22 @@
                             <p class="truncate" style="color: #334155; font-weight: 600; margin-bottom: 2px;">
                                 {{ Str::limit($item->aktivitas, 35) }}
                             </p>
-                            @if ($item->lokasi)
-                                <p style="font-size: 11px;">
-                                    <ion-icon name="location-outline" style="color: {{ $t['primary'] }};"></ion-icon>
-                                    <a href="https://www.google.com/maps?q={{ $item->lokasi }}" 
-                                       target="_blank" 
-                                       onclick="event.stopPropagation();"
-                                       style="color: {{ $t['primary'] }}; font-weight: 600;">
-                                        Lihat di Peta
-                                    </a>
-                                </p>
-                            @endif
+                            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                                <span style="display: none; background: #10b981; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">
+                                    {{ number_format($item->poin, 0) }} Poin
+                                </span>
+                                @if ($item->lokasi)
+                                    <p style="font-size: 11px; margin: 0;">
+                                        <ion-icon name="location-outline" style="color: {{ $t['primary'] }};"></ion-icon>
+                                        <a href="https://www.google.com/maps?q={{ $item->lokasi }}" 
+                                           target="_blank" 
+                                           onclick="event.stopPropagation();"
+                                           style="color: {{ $t['primary'] }}; font-weight: 600;">
+                                            Peta
+                                        </a>
+                                    </p>
+                                @endif
+                            </div>
                         </div>
                     </div>
 
@@ -579,6 +584,16 @@
                             <div id="modalDescription" class="info-value"></div>
                         </div>
                     </div>
+
+                    <div class="info-item">
+                        <div class="info-icon-box">
+                            <ion-icon name="star-outline"></ion-icon>
+                        </div>
+                        <div class="info-content">
+                            <div class="info-label">Point Aktivitas</div>
+                            <div id="modalPoin" class="info-value text-[16px] font-bold text-green-600"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -611,10 +626,11 @@
             new AirDatepicker('#tanggal_awal', dpOpt);
             new AirDatepicker('#tanggal_akhir', dpOpt);
 
-            function showDetailModal(id, aktivitas, tanggal, waktu, lokasi, foto) {
+            function showDetailModal(id, aktivitas, tanggal, waktu, lokasi, foto, poin) {
                 $('#modalDate').text(tanggal);
                 $('#modalTime').text(waktu);
                 $('#modalDescription').text(aktivitas);
+                $('#modalPoin').text(poin.toFixed(0) + ' Poin');
                 
                 let coords = null;
                 if(lokasi && lokasi !== '' && lokasi !== '---') {

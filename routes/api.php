@@ -61,3 +61,5 @@ Route::prefix('update')->group(function () {
         // Route dengan parameter di akhir (agar tidak conflict)
         Route::get('/{version}', [App\Http\Controllers\Api\UpdateController::class , 'show']);
     });
+
+// Activity Point API routes telah dipindahkan ke web.php untuk session support

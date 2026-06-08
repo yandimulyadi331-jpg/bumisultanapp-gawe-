@@ -1,0 +1,116 @@
+════════════════════════════════════════════════════════════════
+  QUICK DEPLOYMENT STEPS - BUMI SULTAN APP
+════════════════════════════════════════════════════════════════
+
+🖥️  DEPLOYMENT LOKAL (DEVELOPMENT)
+════════════════════════════════════════════════════════════════
+
+Langkah 1: Buka Command Prompt di folder project
+Langkah 2: Jalankan: deploy-local.bat
+Langkah 3: Ikuti instruksi yang muncul
+Langkah 4: Setelah selesai, jalankan: php artisan serve
+Langkah 5: Buka: http://localhost:8000
+
+Estimasi waktu: 3-5 menit
+
+
+🌐 DEPLOYMENT KE HOSTING (PRODUCTION)
+════════════════════════════════════════════════════════════════
+
+Langkah 1: Buka Termius
+Langkah 2: Connect ke hosting Anda
+Langkah 3: Jalankan perintah berikut (copy-paste):
+
+───────────────────────────────────────────────────────────────
+# GANTI PATH SESUAI HOSTING ANDA!
+cd /home/bumisultan/public_html
+
+# Pull kode terbaru
+git pull origin main
+
+# Update dependencies
+composer install --no-dev --optimize-autoloader
+npm install --production
+npm run build
+
+# Clear & optimize
+php artisan cache:clear
+php artisan config:cache
+php artisan route:cache
+
+# Run migrations (jika ada)
+php artisan migrate --force
+
+# Set permissions
+chmod -R 775 storage/
+chmod -R 775 bootstrap/cache/
+
+echo "✅ Deployment selesai!"
+───────────────────────────────────────────────────────────────
+
+Langkah 4: Tunggu hingga selesai
+Langkah 5: Buka website Anda untuk verifikasi
+Langkah 6: Cek error logs jika ada masalah
+
+Estimasi waktu: 5-10 menit
+
+
+⚡ PENTING SEBELUM DEPLOY
+════════════════════════════════════════════════════════════════
+
+LOKAL:
+✓ Pastikan MySQL running
+✓ Pastikan Node.js installed
+✓ Pastikan PHP 8.1+ installed
+
+HOSTING:
+✓ Backup database
+✓ Backup files
+✓ Check disk space
+✓ SSH user sudah siap
+
+
+🆘 JIKA ADA ERROR
+════════════════════════════════════════════════════════════════
+
+Lokal:
+1. Jalankan: composer install
+2. Jalankan: npm cache clean --force && npm install
+3. Jalankan: npm run build
+4. Jalankan: php artisan optimize:clear
+
+Hosting:
+1. SSH connect
+2. Jalankan: php artisan tinker
+3. Type: phpinfo() untuk check PHP version
+4. Cek: tail -f storage/logs/laravel.log
+
+
+📋 GIT WORKFLOW (OPSIONAL)
+════════════════════════════════════════════════════════════════
+
+Lokal:
+git add .
+git commit -m "Update: deskripsi perubahan"
+git push origin main
+
+Hosting:
+git pull origin main
+
+
+✅ VERIFICATION CHECKLIST
+════════════════════════════════════════════════════════════════
+
+Setelah deploy:
+□ Website bisa diakses
+□ Login berfungsi
+□ Database updated
+□ Fitur baru berfungsi
+□ Tidak ada error di console
+□ File permissions OK
+□ Caches cleared
+
+
+════════════════════════════════════════════════════════════════
+Untuk detail lengkap, baca: DEPLOYMENT_GUIDE.md
+════════════════════════════════════════════════════════════════

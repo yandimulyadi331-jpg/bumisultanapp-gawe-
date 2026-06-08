@@ -171,6 +171,11 @@
                                                  {{ number_format($detail->skor, 2) }}
                                              </td>
                                          </tr>
+                                         
+                                         {{-- Include activity details jika indikator menggunakan activity points --}}
+                                         @if($detail->indicator->metric_source === 'activity_poin' || $detail->indicator->metric_source === 'activity_count')
+                                             @include('kpi.transactions.partials.activity-details')
+                                         @endif
                                      @endforeach
                                 </tbody>
                             </table>
@@ -252,6 +257,231 @@ $(document).ready(function() {
         else if (totalScore >= 60) grade = 'D';
         
         $('#gradeDisplay').text(grade);
+    }
+    
+    // Activity Points Management
+    
+    // Toggle activity details row
+    $(document).on('click', '.activity-toggle-btn', function(e) {
+        e.preventDefault();
+        const activityRow = $(this).closest('tr');
+        const detailsRow = activityRow.next('.activity-details-row');
+        
+        if (detailsRow.length) {
+            detailsRow.slideToggle(300);
+            $(this).find('i').toggleClass('ti-info-circle ti-chevron-down');
+        }
+    });
+
+    // Save activity points with bulk update
+    $(document).on('click', '.save-activity-points-btn', function() {
+        const btn = $(this);
+        const kpiEmployeeId = btn.data('kpi-employee-id');
+        const table = btn.closest('.activity-points-table');
+        
+        // Collect all changed activity points
+        const activities = [];
+        table.find('.activity-row').each(function() {
+            const activityId = $(this).data('activity-id');
+            const poinInput = $(this).find('.activity-poin-input');
+            const poinValue = parseFloat(poinInput.val()) || 0;
+            
+            activities.push({
+                id: activityId,
+                poin: poinValue
+            });
+        });
+
+        if (activities.length === 0) {
+            alert('Tidak ada aktivitas untuk disimpan');
+            return;
+        }
+
+        btn.prop('disabled', true);
+        btn.html('<i class="ti ti-loader"></i> Menyimpan...');
+
+        $.ajax({
+            url: '/api/activity-point/bulk-update',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            data: JSON.stringify({
+                kpi_employee_id: kpiEmployeeId,
+                activities: activities
+            }),
+            success: function(response) {
+                if (response.success) {
+                    // Update display values
+                    table.find('.activity-row').each(function() {
+                        const poinInput = $(this).find('.activity-poin-input');
+                        if (poinInput.length) {
+                            const newValue = parseFloat(poinInput.val()) || 0;
+                            $(this).find('.activity-poin-input').val(newValue.toFixed(2));
+                        }
+                    });
+
+                    // Update totals
+                    updateActivityTotals(table);
+                    
+                    // Recalculate KPI
+                    calculateKPI();
+                    
+                    // Show success message
+                    showSuccessAlert('Poin aktivitas berhasil disimpan! KPI telah dihitung ulang.');
+                    
+                    // Update grade and total nilai
+                    if (response.data.total_nilai_kpi) {
+                        $('#totalNilaiDisplay').text(parseFloat(response.data.total_nilai_kpi).toFixed(2));
+                    }
+                    if (response.data.grade) {
+                        $('#gradeDisplay').text(response.data.grade);
+                    }
+                } else {
+                    showErrorAlert(response.message);
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.message || 'Gagal menyimpan poin aktivitas';
+                showErrorAlert(errorMsg);
+                console.error('Error:', xhr);
+            },
+            complete: function() {
+                btn.prop('disabled', false);
+                btn.html('<i class="ti ti-device-floppy"></i> Simpan Perubahan Poin');
+            }
+        });
+    });
+
+    // Revert individual activity point
+    $(document).on('click', '.revert-activity-btn', function(e) {
+        e.preventDefault();
+        
+        if (!confirm('Kembalikan poin aktivitas ini ke nilai original?')) {
+            return;
+        }
+
+        const btn = $(this);
+        const row = btn.closest('.activity-row');
+        const activityId = row.data('activity-id');
+        
+        btn.prop('disabled', true);
+        btn.html('<i class="ti ti-loader"></i>');
+
+        $.ajax({
+            url: '/api/activity-point/' + activityId + '/revert',
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                'Accept': 'application/json'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Update poin input value
+                    const poinInput = row.find('.activity-poin-input');
+                    if (poinInput.length) {
+                        poinInput.val(parseFloat(response.data.poin).toFixed(2));
+                    }
+                    
+                    // Update poin display badge
+                    const poinBadge = row.find('td:nth-child(3) .badge');
+                    if (poinBadge.length) {
+                        poinBadge.removeClass('bg-warning').addClass('bg-success');
+                        poinBadge.html(parseFloat(response.data.poin).toFixed(2));
+                    }
+
+                    // Update activity totals
+                    const table = row.closest('.activity-points-table');
+                    updateActivityTotals(table);
+                    
+                    // Recalculate KPI
+                    calculateKPI();
+                    
+                    showSuccessAlert('Poin aktivitas berhasil dikembalikan ke nilai original');
+                    
+                    btn.html('<i class="ti ti-undo"></i>');
+                } else {
+                    showErrorAlert(response.message);
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.message || 'Gagal mengembalikan poin';
+                showErrorAlert(errorMsg);
+                console.error('Error:', xhr);
+                btn.html('<i class="ti ti-undo"></i>');
+            },
+            complete: function() {
+                btn.prop('disabled', false);
+            }
+        });
+    });
+
+    // Reset activity form
+    $(document).on('click', '.reset-activity-form-btn', function() {
+        if (confirm('Reset semua perubahan poin ke nilai yang disimpan?')) {
+            location.reload();
+        }
+    });
+
+    // Update activity totals display
+    function updateActivityTotals(table) {
+        let totalPoin = 0;
+        let count = 0;
+
+        table.find('.activity-row').each(function() {
+            const poinInput = $(this).find('.activity-poin-input');
+            if (poinInput.length) {
+                totalPoin += parseFloat(poinInput.val()) || 0;
+                count++;
+            } else {
+                const badgeText = $(this).find('td:nth-child(3)').text().trim();
+                totalPoin += parseFloat(badgeText) || 0;
+                count++;
+            }
+        });
+
+        // Update total poin display
+        table.closest('.activity-points-table').parent().find('.activity-total-points').text(totalPoin.toFixed(2));
+        
+        // Update average
+        if (count > 0) {
+            const average = totalPoin / count;
+            table.closest('.activity-points-table').parent().find('.activity-avg-points').text(average.toFixed(2));
+        }
+    }
+
+    // Show success alert
+    function showSuccessAlert(message) {
+        const alertHtml = `
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="ti ti-check me-2"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('form').prepend(alertHtml);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(function() {
+            $('.alert-success').fadeOut(function() { $(this).remove(); });
+        }, 5000);
+    }
+
+    // Show error alert
+    function showErrorAlert(message) {
+        const alertHtml = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="ti ti-alert-circle me-2"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+        $('form').prepend(alertHtml);
+        
+        // Auto-dismiss after 7 seconds
+        setTimeout(function() {
+            $('.alert-danger').fadeOut(function() { $(this).remove(); });
+        }, 7000);
     }
     
     // Listen to changes in realisasi inputs

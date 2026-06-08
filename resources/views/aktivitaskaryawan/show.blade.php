@@ -84,6 +84,30 @@
 
                         <div class="row mb-3">
                             <div class="col-sm-3">
+                                <strong>Point Aktivitas:</strong>
+                            </div>
+                            <div class="col-sm-9">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-success" style="font-size: 14px; padding: 8px 12px; display: none;">
+                                        {{ number_format($aktivitaskaryawan->poin, 0) }} Poin
+                                    </span>
+                                    @if ($aktivitaskaryawan->poin_original && $aktivitaskaryawan->poin_original != $aktivitaskaryawan->poin)
+                                        <div class="text-muted small">
+                                            <small>
+                                                Asli: {{ number_format($aktivitaskaryawan->poin_original, 0) }} 
+                                                @if ($aktivitaskaryawan->poin_adjusted_by)
+                                                    | Disesuaikan oleh: {{ $aktivitaskaryawan->poin_adjusted_by }}
+                                                    | {{ $aktivitaskaryawan->poin_adjusted_at?->format('d/m/Y H:i:s') }}
+                                                @endif
+                                            </small>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-sm-3">
                                 <strong>Aktivitas:</strong>
                             </div>
                             <div class="col-sm-9">
